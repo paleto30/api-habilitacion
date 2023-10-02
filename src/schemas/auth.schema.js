@@ -2,7 +2,7 @@ import Joi from "joi";
 
 
 // schema para El registro de Estudiantes
-const schemaStudenRegistration = Joi.object(
+export const schemaStudenRegistration = Joi.object(
     {
         doc_id: Joi.string().min(6).max(20).trim().required(),
         nombre: Joi.string().min(3).max(255).trim().required(),
