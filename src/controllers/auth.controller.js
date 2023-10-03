@@ -98,6 +98,11 @@ const studentRegistration = async (req, res) => {
         const body = req.body;
         const validate = await schemaStudenRegistration.validateAsync(body);
 
+        // validamos que la cedula no exista
+        const docValid = await authService.verifyDoc(validate.doc_id);
+        if (docValid) {
+            return res.status(409).json({status: false, error: 'El documento de identidad no es valido'});
+        }
         // validamos que el correo no exista 
         const emailValid = await authService.verifyEmail(validate.correo)
         if (emailValid) {

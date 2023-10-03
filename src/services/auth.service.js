@@ -34,9 +34,10 @@ const getAvailableSedes = async () => {
 /* 
     funcion para retornar las facultades que le pertenecen a una sede especifica
 */
-const getAvailableFacultades = async (id_sede) => {
+const getAvailableFacultades = async (id_sede ) => {
     try {
 
+        id_sede = id_sede || 0;
         const facultades = await db.query(`
             SELECT id, codigo, nombre FROM tg_facultad
             WHERE id_sede = :id_sede;
@@ -133,6 +134,29 @@ const verifyEmail = async (email) => {
     }
 }
 
+/* 
+    funcion para validar si el email ya fue registrado o no
+*/
+const verifyDoc = async (doc) => {
+    try {
+
+        const results = await EstudianteModel.findOne({
+            where: {
+                doc_id: doc
+            }
+        });
+
+        if (results === null) {
+            return false;
+        }
+
+        return !!results;  // esto retorna true si existe un email . sino retorna false
+
+    } catch (error) {
+        throw new Error('No se pudo validar el Email. algo salio mal')
+    }
+}
+
 
 
 /*
@@ -177,5 +201,6 @@ export default {
     getAvailableCoordinacion,
     getAvailableCarrera,
     verifyEmail,
-    createNewUser
+    verifyDoc,
+    createNewUser,
 }
