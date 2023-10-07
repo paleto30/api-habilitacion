@@ -8,5 +8,6 @@ export default {
     nameuser: process.env.NAME_USER,
     password: process.env.PASSWORD_USER,
     port: process.env.PORT,
-    dialect: process.env.DIALECT
+    dialect: process.env.DIALECT,
+    secret_key: process.env.JWT_KEY_PUBLIC
 }
