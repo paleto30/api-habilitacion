@@ -2,7 +2,7 @@ import { QueryTypes } from "sequelize";
 import db from "../db/conexion.js";
 import SedeModel from "../models/sede.model.js";
 import EstudianteModel from "../models/estudiante.model.js";
-
+import AdministradorModel from '../models/administrador.model.js';
 
 
 
@@ -114,7 +114,7 @@ const getAvailableCarrera = async (id_coordinacion) => {
 /* 
     funcion para validar si el email ya fue registrado o no
 */
-const verifyEmail = async (email) => {
+const verifyEmailEstudent = async (email) => {
     try {
 
         const results = await EstudianteModel.findOne({
@@ -124,10 +124,10 @@ const verifyEmail = async (email) => {
         });
 
         if (results === null) {
-            return false;
+            return [false,[]];
         }
 
-        return !!results;  // esto retorna true si existe un email . sino retorna false
+        return [!!results, results];  // esto retorna true si existe un email . sino retorna false
 
     } catch (error) {
         throw new Error('No se pudo validar el Email. algo salio mal')
@@ -177,10 +177,66 @@ const createNewUser = async (estudiante) => {
 
 
 
+/* 
+    funcion para validar si el email ya fue registrado o no
+*/
+const verifyEmailAdmin = async (email) => {
+    try {
+
+        const results = await AdministradorModel.findOne({
+            where: {
+                correo: email
+            }
+        });
+
+        if (results === null) {
+            return [false,[]];
+        }
+
+        return [!!results, results];  // esto retorna true si existe un email . sino retorna false
+
+    } catch (error) {
+        throw new Error('No se pudo validar el Email Admin. algo salio mal');
+    }
+}
 
 
+/* 
+    funcion para validar si el email ya fue registrado o no
+*/
+const verifyDocAdmin = async (doc) => {
+    try {
 
+        const results = await AdministradorModel.findOne({
+            where: {
+                doc_id: doc
+            }
+        });
 
+        if (results === null) {
+            return false;
+        }
+
+        return !!results;  // esto retorna true si existe un email . sino retorna false
+
+    } catch (error) {
+        throw new Error('No se pudo validar el Email admin. algo salio mal')
+    }
+}
+
+/*
+    funcion para crear un nuevo registro de Administrador 
+*/
+const createNewUserAdmin = async (admin) => {
+    try {
+
+        const newUser = await AdministradorModel.create(admin); 
+        return newUser;
+        
+    } catch (error) {
+        throw new Error('No se pudo crear en nuevo estudiante. algo salio mal');
+    }
+}
 
 
 
@@ -200,7 +256,10 @@ export default {
     getAvailableFacultades,
     getAvailableCoordinacion,
     getAvailableCarrera,
-    verifyEmail,
+    verifyEmailEstudent,
     verifyDoc,
     createNewUser,
+    verifyEmailAdmin,
+    verifyDocAdmin,
+    createNewUserAdmin
 }
