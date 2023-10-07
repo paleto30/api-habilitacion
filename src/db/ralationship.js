@@ -3,7 +3,7 @@ import FacultadModel from '../models/facultad.model.js';
 import CoordinacionModel from '../models/coordinacion.model.js';
 import CarreraModel from '../models/carrera.model.js';
 import EstudianteModel from '../models/estudiante.model.js';
-
+import AdministradorModel from '../models/administrador.model.js';
 
 // -> funcion para asignar las respectivas relaciones que tienen los modelos entre si 
 export const createRelationship = () => {
@@ -31,4 +31,9 @@ export const createRelationship = () => {
     CarreraModel.hasMany(EstudianteModel, { foreignKey: 'id_carrera' });
     EstudianteModel.belongsTo(CarreraModel, { foreignKey: 'id_carrera', targetKey: 'id' });
 
+
+    // una Coordinacion puede tener varios usuarios administradores
+    // un administrador solo puede pertenecer a una coordinacion 
+    CoordinacionModel.hasMany(AdministradorModel, { foreignKey: 'id_coordinacion' });
+    AdministradorModel.belongsTo(CoordinacionModel, { foreignKey: 'id_coordinacion', targetKey: 'id' });
 }   
