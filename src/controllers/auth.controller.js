@@ -189,7 +189,7 @@ const loginManagement = async (req, res) => {
         // proceso para login estudiante
         const emailDomainStudent = checkEmailDomain(validate.correo, 'TYPE_STUDENT');
         if (emailDomainStudent) {
-            const responseLogin = await authService.studentLogin(validate, );
+            const responseLogin = await authService.studentLogin(validate,);
             if (responseLogin === 'UNREGISTERED_USER') return res.status(404).json({ status: false, error: 'Usuario no registrado.' });
             if (responseLogin === 'PASSWORD_INCORRECT') return res.status(403).json({ status: false, error: 'Contraseña incorrecta.' });
             return res.json({
@@ -219,10 +219,7 @@ const loginManagement = async (req, res) => {
             error: 'El dominio del correo no es un dominio valido para el sistema.'
         })
     } catch (error) {
-        res.status(400).json({
-            status: false,
-            error: error.message
-        })
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
