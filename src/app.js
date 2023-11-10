@@ -19,7 +19,7 @@ app.use(express.json());
 
 // configuracion de cors
 app.use(cors());
-
+app.use(express.urlencoded({ extended: true }));
 
 
 // -> hook db_proccess
