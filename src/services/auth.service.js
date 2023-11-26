@@ -75,7 +75,6 @@ const getAvailableCoordination = async (id_faculties) => {
 */
 const getAvailableCareers = async (id_coordination) => {
     try {
-
         const careers = await db.query(`
             SELECT DISTINCT(id) as id, nombre FROM tg_carrera WHERE id_coordinacion = :id_coordination
             ORDER BY nombre ASC
@@ -240,20 +239,6 @@ const adminLogin = async (credentials) => {
         throw error;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
