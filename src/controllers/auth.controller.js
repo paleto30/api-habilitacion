@@ -66,7 +66,6 @@ const getCoordinationByFacultie = async (req, res) => {
     try {
 
         const { id_facultad } = req.params;
-
         if (!idIsNumber(id_facultad)) {
             return res.status(404).json({ status: false, error: `El parametro ID <${id_facultad}> no es valido.` });
         }
@@ -121,15 +120,19 @@ const getCareersByCoordination = async (req, res) => {
     @PATH : '/api/v1/authentication/register' 
 */
 const studentRegistration = async (req, res) => {
+
+    const errorResponse = {
+        'EMAIL_DOMAIN_INVALID': { status: 409, error: `El dominio del correo no es valido.` },
+        'EXISTING_ID_DOCUMENT': { status: 409, error: `El documento de identidad ya esta registrado.` },
+        'EXISTING_EMAIL': { status: 409, error: `El correo electronico ya esta registrado.` },
+        'NOT_EXISTING_CAREER': { status: 404, error: `La carrera no es valida.` },
+    }
     try {
         const body = req.body;
         const validate = await schemaStudentRegistration.validateAsync(body);
         const response = await authService.studentRegister(validate);
-
-        if (response === 'EXISTING_ID_DOCUMENT') return res.status(409).json({ status: false, error: `El documento de identidad ya esta registrado.` });
-        if (response === 'EXISTING_ID_DOCUMENT') return res.status(409).json({ status: false, error: `El documento de identidad ya esta registrado.` });
-        if (response === 'EXISTING_EMAIL') return res.status(409).json({ status: false, error: `El correo electronico ya esta registrado.` });
-        if (response === 'NOT_EXISTING_CAREER') return res.status(409).json({ status: false, error: `La carrera no es valida.` });
+        const errorCase = errorResponse[response];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
 
         return res.status(201).json({
             status: true,
@@ -151,15 +154,21 @@ const studentRegistration = async (req, res) => {
     @PATH : '/api/v1/authentication/register/user-admin' 
 */
 const adminRegistration = async (req, res) => {
+
+    const errorResponse = {
+        'EMAIL_DOMAIN_INVALID': { status: 409, error: `El dominio del correo no es valido.` },
+        'EXISTING_ID_DOCUMENT': { status: 409, error: `El documento de identidad ya esta registrado.` },
+        'EXISTING_EMAIL': { status: 409, error: `El correo electronico ya esta registrado.` },
+        'NOT_EXISTING_COORDINATION': { status: 404, error: `La coordinacion no es valida.` }
+    }
+
     try {
-        const body = req.body;
+        const { body } = req;
         const validate = await schemaAdminRegistration.validateAsync(body);
         const resAdmin = await authService.adminRegister(validate);
 
-        if (resAdmin === 'EMAIL_DOMAIN_INVALID') return res.status(409).json({ status: false, error: `El dominio del correo es invalido.` });
-        if (resAdmin === 'EXISTING_ID_DOCUMENT') return res.status(409).json({ status: false, error: `El documento de identidad ya esta registrado.` });
-        if (resAdmin === 'EXISTING_EMAIL') return res.status(409).json({ status: false, error: `El correo electronico ya esta registrado.` });
-        if (resAdmin === 'NOT_EXISTING_COORDINATION') return res.status(409).json({ status: false, error: `La carrera no es valida.` });
+        const errorCase = errorResponse[resAdmin];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
 
         return res.status(201).json({
             status: true,
@@ -167,7 +176,7 @@ const adminRegistration = async (req, res) => {
             administrador: resAdmin
         });
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, `${error.message}`, error.message);
     }
 }
 
@@ -182,6 +191,12 @@ const adminRegistration = async (req, res) => {
     @PATH : '/api/v1/authentication/iniciar-sesion' 
 */
 const loginManagement = async (req, res) => {
+
+    const errorResponse = {
+        'UNREGISTERED_USER': { status: 404, error: 'Usuario no registrado.' },
+        'PASSWORD_INCORRECT': { status: 403, error: 'Contraseña incorrecta.' }
+    }
+
     try {
         const { correo, clave } = req.body;
         const validate = await schemaStudentLogin.validateAsync({ correo, clave });
@@ -190,8 +205,9 @@ const loginManagement = async (req, res) => {
         const emailDomainStudent = checkEmailDomain(validate.correo, 'TYPE_STUDENT');
         if (emailDomainStudent) {
             const responseLogin = await authService.studentLogin(validate,);
-            if (responseLogin === 'UNREGISTERED_USER') return res.status(404).json({ status: false, error: 'Usuario no registrado.' });
-            if (responseLogin === 'PASSWORD_INCORRECT') return res.status(403).json({ status: false, error: 'Contraseña incorrecta.' });
+
+            const errorCase = errorResponse[responseLogin];
+            if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
             return res.json({
                 status: true,
                 message: 'Usuario verificado correctamente',
@@ -204,8 +220,9 @@ const loginManagement = async (req, res) => {
         const emailDomainAdmin = checkEmailDomain(validate.correo, 'TYPE_ADMIN');
         if (emailDomainAdmin) {
             const responseLogin = await authService.adminLogin(validate);
-            if (responseLogin === 'UNREGISTERED_USER') return res.status(404).json({ status: false, error: 'Usuario no registrado.' });
-            if (responseLogin === 'PASSWORD_INCORRECT') return res.status(403).json({ status: false, error: 'Contraseña incorrecta.' });
+
+            const errorCase = errorResponse[responseLogin];
+            if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
             return res.json({
                 status: true,
                 message: 'Usuario verificado correctamente',
@@ -234,6 +251,6 @@ export default {
     getCareersByCoordination,
     studentRegistration,
     adminRegistration,
-    loginManagement
+    loginManagement,
 }
 
