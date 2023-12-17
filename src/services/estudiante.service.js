@@ -5,6 +5,9 @@ import { idIsNumber } from '../helpers/errorhandler.js';
 import MateriaModel from '../models/materia.model.js';
 import HabilitacionModel from '../models/habilitaciones.model.js';
 import fileControl from '../helpers/fileControl.js';
+import ProfesorModel from '../models/profesor.model.js';
+import { sendEmail } from '../helpers/emailHandler.js';
+import { getTemplateToSendTeacher, getTheEnablementEmailTemplate } from '../helpers/templatesHtml.js';
 
 
 /*
@@ -97,6 +100,9 @@ const makeAuthorizationRequest = async (request, files) => {
         const existSubject = await MateriaModel.findByPk(request.id_materia);
         if (!existSubject) return "SUBJECT_NOT_FOUND";
 
+        const existeTeacher = await ProfesorModel.findByPk(request.id_profesor);
+        if (!existeTeacher) return "TEACHER_NOT_FOUND";
+
         // validar que la referencia haya sido generada por el sistema uts
         const legalReference = await getEnableReference(`${request.referencia}`);
         if (!legalReference) return 'REFERENCE_NOT_VALID';
@@ -117,13 +123,15 @@ const makeAuthorizationRequest = async (request, files) => {
 
         const newAuthorization = await HabilitacionModel.create({
             referencia_pago: request.referencia,
-            id_estudiante: request.id_estudiante,
-            id_materia: request.id_materia,
+            id_estudiante: existStudent.id,
+            id_materia: existSubject.id,
+            id_profesor: existeTeacher.id,
             img_factura: files['pdf'][0].filename,
             img_recibo_pago: files['imagen'][0].filename
         }, { transaction: t });
 
         // envio de correo a estudiante y profesor 
+        const { responseEmailStudent, responseEmailTeacher } = await sendProcessEmails(existStudent, existeTeacher, existSubject, legalReference.REF_PAY_GENERATED, getfotmatDate(newAuthorization.createdAt));
 
         fileControl.relocateTheFile(files['pdf'][0].path, `storage/pdf/${files['pdf'][0].filename}`)
         fileControl.relocateTheFile(files['imagen'][0].path, `storage/images/${files['imagen'][0].filename}`)
@@ -135,7 +143,9 @@ const makeAuthorizationRequest = async (request, files) => {
             id: newAuthorization.id,
             referencia: newAuthorization.referencia_pago,
             materia: existSubject.nombre,
-            estudiante: `${existStudent.nombre} ${existStudent.apellido}`
+            estudiante: `${existStudent.nombre} ${existStudent.apellido}`,
+            emailStudent: responseEmailStudent,
+            emailTeacher: responseEmailTeacher
         };
     } catch (error) {
         await t.rollback();
@@ -145,14 +155,33 @@ const makeAuthorizationRequest = async (request, files) => {
 }
 
 
+//funcion formato fecha
+function getfotmatDate(date) {
+    const dateFormat = new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        timeZoneName: 'short',
+    })
+    return dateFormat.format(date);
+}
 
-
-async function sendProcessEmails() {
+// funcion para envio de emails
+async function sendProcessEmails(student, teacher, subject, reference, fecha_aprobacion) {
     try {
 
+        const templateStudent = getTheEnablementEmailTemplate(student, subject.nombre, reference, teacher, fecha_aprobacion);
+        const templateTeacher = getTemplateToSendTeacher(teacher, student, subject.nombre, reference, fecha_aprobacion);
 
+        const [responseEmailStudent, responseEmailTeacher] = await Promise.all([
+            sendEmail(student.correo, 'Informacion Solicitud de Habilitacion.', templateStudent),
+            sendEmail(teacher.correo, 'Solicitud de habilitación.', templateTeacher)
+        ]);
 
-
+        return { responseEmailStudent, responseEmailTeacher };
     } catch (error) {
         throw error;
     }
@@ -161,9 +190,45 @@ async function sendProcessEmails() {
 
 
 
+const getHistoryOfRequestByStudent = async ({ id_student }) => {
+
+    try {
+
+        const student = await EstudianteModel.findByPk(id_student);
+        if (!student) return "STUDENT_NOT_FOUND";
+
+        const listOfRequest = await db.query(`
+            SELECT 
+                tg_h.id,
+                tg_h.referencia_pago,
+                tg_m.nombre AS materia,
+                CONCAT(tg_p.nombre, ' ', tg_p.apellido) AS profesor,
+                tg_p.correo AS correo_profesor,
+                DATE_FORMAT(tg_h.created_at, '%Y-%m-%d') AS fecha_aprobacion
+            FROM tg_habilitaciones AS tg_h
+            JOIN tg_materia AS tg_m ON tg_h.id_materia = tg_m.id
+            JOIN tg_profesor AS tg_p ON tg_h.id_profesor = tg_p.id
+            JOIN tg_estudiante AS tg_e ON tg_h.id_estudiante = tg_e.id
+            WHERE tg_e.id = :id_student
+            ORDER BY tg_h.id desc
+        `, {
+            replacements: { id_student: id_student },
+            type: QueryTypes.SELECT
+        });
+
+        return listOfRequest;
+
+    } catch (error) {
+        throw error
+    }
+}
+
+
+
 
 export default {
     getSubjectsAvailableToStudent,
     findTeachersForSubject,
     makeAuthorizationRequest,
+    getHistoryOfRequestByStudent
 }

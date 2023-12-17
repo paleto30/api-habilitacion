@@ -23,6 +23,14 @@ const HabilitacionModel = db.define('habilitacion', {
             key: 'id'
         }
     },
+    id_profesor: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references:{
+            model: 'tg_proferos',
+            key: 'id'
+        }
+    },
     id_materia: {
         type: DataTypes.INTEGER,
         allowNull: false,

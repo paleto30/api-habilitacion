@@ -1,18 +1,16 @@
 import estudianteService from '../services/estudiante.service.js';
-import { schemaValidateAuthorizationRequest, shcemaValidateTeachersForSubject } from '../schemas/student.schema.js';
+import { schemaValidateAuthorizationRequest, shcemaValidateTeachersForSubject, validateHistoryParamas } from '../schemas/student.schema.js';
 import fileControl from '../helpers/fileControl.js';
 import { handlerHttpErrors } from '../helpers/errorhandler.js';
+
+
+
+
 
 
 /*
     funciones para el control de los procesos en 
 */
-
-
-
-
-
-
 
 
 
@@ -51,6 +49,8 @@ const getStudentSubjects = async (req, res) => {
 
 
 
+
+
 /**
  *  @author Andres Galvis
  *  @description  -> esta funcion retorna los profesores que dictan la misma materia para que el estudiante seleecione su profesor
@@ -79,6 +79,10 @@ const getTeachersForSubject = async (req, res) => {
 
 
 
+
+
+
+
 /**
  *  @author Andres Galvis
  *  @description -> Hacer el envio de una solicitud de habilitacion
@@ -88,6 +92,7 @@ const makeOneRequest = async (req, res) => {
     const errorResponse = {
         'STUDENT_NOT_FOUND': { status: 404, error: 'El estudiante que solicita la habilitacion no existe en el sistema' },
         'SUBJECT_NOT_FOUND': { status: 404, error: 'La materia que solicita habilitar no existe' },
+        'TEACHER_NOT_FOUND': { status: 404, error: 'El profesor no existe' },
         'REFERENCE_NOT_VALID': { status: 422, error: 'EL numero de referencia que ingreso no es valido. porfavor verifique.' },
         'UNPAID_REFERENCE': { status: 422, error: 'Debe pagar el valor de la referencia, antes de solicitar la habilitacion' },
         'EXISTING_REFERENCE': { status: 409, error: 'La referencia que ingreso ya esta registrada, genere una nueva referencia para realizar la solicitud.' },
@@ -99,15 +104,18 @@ const makeOneRequest = async (req, res) => {
     const user = req.usuario;
 
     try {
-        const { materia, referencia } = req.body;
+
+        const { materia, referencia, profesor } = req.body;
 
         const data = {
             id_materia: materia,
             id_estudiante: user.id,
+            id_profesor: profesor,
             referencia: referencia
         }
         // validar el request
         const validate = await schemaValidateAuthorizationRequest.validateAsync(data);
+
         const responseRequest = await estudianteService.makeAuthorizationRequest(validate, files);
 
         const errorCase = errorResponse[responseRequest];
@@ -118,7 +126,7 @@ const makeOneRequest = async (req, res) => {
 
         return res.status(201).json({
             status: true,
-            message: 'respuesta del request',
+            message: 'Solicitud aprovada.\nPorfavor revisar el correo institucional.',
             info: responseRequest
         })
     } catch (error) {
@@ -131,6 +139,35 @@ const makeOneRequest = async (req, res) => {
 
 
 
+/**
+ * @author Andres Galvis
+ * @description -> obtener el listado de las ultimas 10 solicitudes realizadas por el estudiante
+*/
+const getHistoryOfRequest = async (req, res) => {
+    const errorRes = {
+        'STUDENT_NOT_FOUND':{status: 404, error: 'El estudiante no existe'}
+    }
+    try {
+
+        const validate = await validateHistoryParamas.validateAsync({ id_student: req.usuario.id });
+        const responseGet = await estudianteService.getHistoryOfRequestByStudent(validate);
+
+        const errorCase = errorRes[responseGet];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
+
+        return res.json({
+            status: true,
+            message: 'Consultado correctamente',
+            history: responseGet 
+        })
+
+    } catch (error) {
+        handlerHttpErrors(res, error.message);
+    }
+}
+
+
+
 
 
 
@@ -139,4 +176,5 @@ export default {
     getStudentSubjects,
     getTeachersForSubject,
     makeOneRequest,
+    getHistoryOfRequest
 }

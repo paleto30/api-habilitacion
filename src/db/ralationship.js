@@ -65,4 +65,10 @@ export const createRelationship = () => {
     // relacion muchos a muchos entre materia y profesor, por medio de la tabla materiaProfeso
     MateriaModel.belongsToMany(ProfesorModel, { through: MateriaProfesorModel, foreignKey: 'id_materia', targetKey: 'id' });
     ProfesorModel.belongsToMany(MateriaModel, { through: MateriaProfesorModel, foreignKey: 'id_profesor', targetKey: 'id' });
+
+    
+    // relacion uno a muchos entre habilitaciones y profesor
+    ProfesorModel.hasMany(HabilitacionModel, { foreignKey: 'id_profesor' })
+    HabilitacionModel.belongsTo(ProfesorModel, { foreignKey: 'id_profesor', targetKey: 'id' });
+
 }   

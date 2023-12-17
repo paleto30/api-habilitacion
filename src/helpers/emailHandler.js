@@ -11,8 +11,8 @@ const transporter = nodemailer.createTransport({
         rejectUnauthorized: false
     },
     auth: {
-        user: "afgalvispereira@uts.edu.co",
-        pass: "4fgp.1007438904"
+        user: "601a918a1d5e83",
+        pass: "3b9e1b4065929b"
     }
 });
 
@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 export const sendEmail = async (emailUser, subject, template) =>{
     try {
         const info = await transporter.sendMail({
-            from: "afgalvispereira@uts.edu.co", // de 
+            from: "601a918a1d5e83", // de 
             to: emailUser,
             subject: subject,
             html: template
