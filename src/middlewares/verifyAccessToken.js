@@ -7,19 +7,23 @@ const verifyAccessToken = (req, res, next) => {
 
     // verificamos que exista el token y sea de tipo Bearer
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ status: false, error: 'Token no proporcionao o formato de token incorrecto' });
+    if (!authHeader) {
+        return res.status(401).json({ status: false, error: 'Token no proporcionado.' });
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ status: false, error: 'Formato de token incorrecto.' });
     }
 
     // obtenemos el token excluyendo el Bearer
-    const token = authHeader.split(' ')[1]; 
+    const token = authHeader.split(' ').pop();
 
     try {
         const verifytoken = jwt.verify(token, config.secret_key);
         req.usuario = verifytoken;
         next();
     } catch (error) {
-        res.status(401).json({ status: false, error: "No cuenta con permisos para realizar esta acción", error: error.message })
+        res.status(401).json({ status: false, error: error.message })
     }
 }
 

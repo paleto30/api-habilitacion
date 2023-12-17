@@ -1,26 +1,28 @@
 import { schemaStudentRegistration, schemaStudentLogin, schemaAdminRegistration } from "../schemas/auth.schema.js";
 import authService from "../services/auth.service.js";
-import { encryptData, verifyEncryptData } from '../helpers/encryptData.js';
-import { createToken } from '../helpers/jwtFunctions.js';
+import { checkEmailDomain, handlerHttpErrors, idIsNumber } from '../helpers/errorhandler.js';
+
+
+
+
 
 
 /** 
  *  @author:  Andres Galvis  
  *  @description: funcion para obtener las sedes disponibles para el forrmulario de registro de un estudiante
  *  @GET :
- *  @PATH :  /api/v1/authentication/sedes
+ *  @PATH :  /api/v1/authentication/campus
  */
-const getSedes = async (req, res) => {
+const getCampus = async (req, res) => {
     try {
-        const sedes = await authService.getAvailableSedes();
-
+        const sedes = await authService.getAvailableCampus();
         return res.json({
             status: true,
             message: 'consultado correctamente',
             sedes
         })
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message });
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
@@ -31,21 +33,24 @@ const getSedes = async (req, res) => {
  *  @author:  Andres Galvis  
  *  @description: Funcion para obtener las facultades disponibles segun el la sede 
  *  @GET 
- *  @PATH :  /api/v1/authentication/sedes
+ *  @PATH :  /api/v1/authentication/campus/:id_sede/faculties
  */
-const getFacultadesBySede = async (req, res) => {
+const getFacultiesByCampus = async (req, res) => {
     try {
         const { id_sede } = req.params;
-        const facultades = await authService.getAvailableFacultades(Number(id_sede));
+
+        if (!idIsNumber(id_sede)) {
+            return res.status(404).json({ status: false, error: `El parametro ID <${id_sede}> no es valido.` });
+        }
+        const facultades = await authService.getAvailableFaculties(Number(id_sede));
 
         return res.json({
             status: true,
             message: 'consultado correctamente',
             facultades
         })
-
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message });
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
@@ -55,13 +60,16 @@ const getFacultadesBySede = async (req, res) => {
  *  @author:  Andres Galvis  
  *  @description: funcion para obtener las coordinaciones disponibles para la respectiva sede 
  *  @GET 
- *  @PATH :  /api/v1/authentication/sedes/:id_sede/facultades
+ *  @PATH :  /api/v1/authentication/faculties/:id_facultad/coordinations
  */
-const getCoordinacionByFacultad = async (req, res) => {
+const getCoordinationByFacultie = async (req, res) => {
     try {
 
         const { id_facultad } = req.params;
-        const coordinaciones = await authService.getAvailableCoordinacion(id_facultad);
+        if (!idIsNumber(id_facultad)) {
+            return res.status(404).json({ status: false, error: `El parametro ID <${id_facultad}> no es valido.` });
+        }
+        const coordinaciones = await authService.getAvailableCoordination(Number(id_facultad));
 
         return res.json({
             status: true,
@@ -71,7 +79,7 @@ const getCoordinacionByFacultad = async (req, res) => {
 
 
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message })
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
@@ -81,13 +89,16 @@ const getCoordinacionByFacultad = async (req, res) => {
  *  @author:  Andres Galvis  
  *  @description: funcion para obtener las carreras disponibles para la respectiva coordinacion 
  *  @GET 
- *  @PATH :  /api/v1/authentication/coordinacion/:id_coordinacion/carreras
+ *  @PATH :  /api/v1/authentication/coordinations/:id_coordinacion/careers
  */
-const getCarrerasByCoordinacion = async (req, res) => {
+const getCareersByCoordination = async (req, res) => {
     try {
 
         const { id_coordinacion } = req.params;
-        const carreras = await authService.getAvailableCarrera(id_coordinacion);
+        if (!idIsNumber(id_coordinacion)) {
+            return res.status(404).json({ status: false, error: `El parametro ID <${id_coordinacion}> no es valido.` });
+        }
+        const carreras = await authService.getAvailableCareers(Number(id_coordinacion));
 
         return res.json({
             status: true,
@@ -96,7 +107,7 @@ const getCarrerasByCoordinacion = async (req, res) => {
         })
 
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message });
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
@@ -106,65 +117,32 @@ const getCarrerasByCoordinacion = async (req, res) => {
     @author: Andres Galvis
     @description: funcion para realizar el registro de un estudiante dentro de la plataforma
     @POST
-    @PATH : '/api/v1/authentication/registrarse' 
+    @PATH : '/api/v1/authentication/register' 
 */
 const studentRegistration = async (req, res) => {
-    const expressionStudent = /^[a-zA-Z0-9._%+-]+@uts\.edu\.co$/;
-    try {
 
+    const errorResponse = {
+        'EMAIL_DOMAIN_INVALID': { status: 409, error: `El dominio del correo no es valido.` },
+        'EXISTING_ID_DOCUMENT': { status: 409, error: `El documento de identidad ya esta registrado.` },
+        'EXISTING_EMAIL': { status: 409, error: `El correo electronico ya esta registrado.` },
+        'NOT_EXISTING_CAREER': { status: 404, error: `La carrera no es valida.` },
+    }
+    try {
         const body = req.body;
         const validate = await schemaStudentRegistration.validateAsync(body);
+        const response = await authService.studentRegister(validate);
+        const errorCase = errorResponse[response];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
 
-        if (!expressionStudent.test(validate.correo)) {
-            return res.status(409).json({ status: false, error: 'Lo sentimos el correo no es un correo valido para este registro.' });
-        }
-
-        // validamos que la cedula no exista
-        const docValid = await authService.verifyDoc(validate.doc_id);
-        if (docValid) {
-            return res.status(409).json({ status: false, error: 'El documento de identidad no es valido' });
-        }
-        // validamos que el correo no exista 
-        const emailValid = await authService.verifyEmailEstudent(validate.correo)
-        if (emailValid[0]) {
-            return res.status(409).json({ status: false, error: 'El correo que intenta registrar ya existe en el sistema.' });
-        }
-
-        // hasheamos el password
-        const claveHash = await encryptData(validate.clave, 12);
-
-        // creamos el objeto que se va a enviar para crear al usuario
-        const userToSave = {
-            doc_id: validate.doc_id,
-            nombre: validate.nombre,
-            apellido: validate.apellido,
-            telefono: validate.telefono,
-            correo: validate.correo,
-            clave: claveHash,
-            id_carrera: validate.id_carrera
-        }
-
-        // retorno de la creacion del nuevo usuario
-        const newUser = await authService.createNewUser(userToSave);
-
-        // respondemos al cliente
         return res.status(201).json({
             status: true,
-            message: 'Registrado correctamente',
-            estudiante: {
-                id: newUser.id,
-                doc_id: newUser.doc_id,
-                nombre: newUser.nombre,
-                apellido: newUser.apellido,
-                correo: newUser.correo
-            }
-
+            message: 'Registro exitoso',
+            estudiante: response
         });
-
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message })
+        handlerHttpErrors(res, `${error.message}`);
     }
-}
+};
 
 
 
@@ -173,64 +151,32 @@ const studentRegistration = async (req, res) => {
     @author: Andres Galvis
     @description: funcion para realizar el registro de un Administrador dentro de la plataforma
     @POST
-    @PATH : '/api/v1/authentication/register/user-admin/' 
+    @PATH : '/api/v1/authentication/register/user-admin' 
 */
 const adminRegistration = async (req, res) => {
-    const expressionAdmin = /^[a-zA-Z0-9._%+-]+@correo\.uts\.edu\.co$/;
+
+    const errorResponse = {
+        'EMAIL_DOMAIN_INVALID': { status: 409, error: `El dominio del correo no es valido.` },
+        'EXISTING_ID_DOCUMENT': { status: 409, error: `El documento de identidad ya esta registrado.` },
+        'EXISTING_EMAIL': { status: 409, error: `El correo electronico ya esta registrado.` },
+        'NOT_EXISTING_COORDINATION': { status: 404, error: `La coordinacion no es valida.` }
+    }
+
     try {
-
-        const body = req.body;
+        const { body } = req;
         const validate = await schemaAdminRegistration.validateAsync(body);
+        const resAdmin = await authService.adminRegister(validate);
 
-        if (!expressionAdmin.test(validate.correo)) {
-            return res.status(409).json({ status: false, error: 'Lo sentimos el correo no es un correo valido para este registro.' });
-        }
+        const errorCase = errorResponse[resAdmin];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
 
-        // validamos que la cedula no exista
-        const docValid = await authService.verifyDocAdmin(validate.doc_id);
-        if (docValid) {
-            return res.status(409).json({ status: false, error: 'El documento de identidad no es valido' });
-        }
-
-        // validamos que el correo no exista 
-        const userValid = await authService.verifyEmailAdmin(validate.correo)
-        if (userValid[0]) {
-            return res.status(409).json({ status: false, error: 'El correo que intenta registrar ya existe en el sistema.' });
-        }
-
-        // hasheamos el password
-        const claveHash = await encryptData(validate.clave, 12);
-
-        // creamos el objeto que se va a enviar para crear al usuario
-        const userToSave = {
-            doc_id: validate.doc_id,
-            nombre: validate.nombre,
-            apellido: validate.apellido,
-            telefono: validate.telefono,
-            correo: validate.correo,
-            clave: claveHash,
-            id_coordinacion: validate.id_coordinacion
-        }
-
-        // retorno de la creacion del nuevo usuario
-        const newUser = await authService.createNewUserAdmin(userToSave);
-
-        // respondemos al cliente
         return res.status(201).json({
             status: true,
             message: 'Registrado correctamente',
-            estudiante: {
-                id: newUser.id,
-                doc_id: newUser.doc_id,
-                nombre: newUser.nombre,
-                apellido: newUser.apellido,
-                correo: newUser.correo
-            }
-
+            administrador: resAdmin
         });
-
     } catch (error) {
-        res.status(400).json({ status: false, error: error.message })
+        handlerHttpErrors(res, `${error.message}`, error.message);
     }
 }
 
@@ -246,116 +192,51 @@ const adminRegistration = async (req, res) => {
 */
 const loginManagement = async (req, res) => {
 
-    const expressionAdmin = /^[a-zA-Z0-9._%+-]+@correo\.uts\.edu\.co$/;
-    const expressionStudent = /^[a-zA-Z0-9._%+-]+@uts\.edu\.co$/;
+    const errorResponse = {
+        'UNREGISTERED_USER': { status: 404, error: 'Usuario no registrado.' },
+        'PASSWORD_INCORRECT': { status: 403, error: 'Contraseña incorrecta.' }
+    }
+
     try {
-
         const { correo, clave } = req.body;
-
         const validate = await schemaStudentLogin.validateAsync({ correo, clave });
 
-        // verificamos que los correos que se ingresean sean de los dominios aceptados (dominios institucionales)
-        if (!((expressionStudent.test(correo) || expressionAdmin.test(correo)) && !(expressionStudent.test(correo) && expressionAdmin.test(correo)))) {
-            return res.status(422).json({ status: false, error: 'El dominio del correo que ingreso no es valido para este sistema. verifique!' })
-        }
+        // proceso para login estudiante
+        const emailDomainStudent = checkEmailDomain(validate.correo, 'TYPE_STUDENT');
+        if (emailDomainStudent) {
+            const responseLogin = await authService.studentLogin(validate,);
 
-
-        // acciones si es un correo estudiante -> 
-        if (expressionStudent.test(validate.correo)) {
-
-            // verificamos que sea un correo existente en el sistema
-            const validateUser = await authService.verifyEmailEstudent(validate.correo);
-            if (!validateUser[0]) {
-                return res.status(409).json({ status: false, error: 'Credenciales incorrectas, verifique!' })
-            }
-
-            // comparamos la contraseña 
-            const compareKey = await verifyEncryptData(validate.clave, validateUser[1].clave);
-            if (!compareKey) {
-                return res.status(409).json({ status: false, error: 'Credenciales incorrectas' })
-            }
-
-            // creamos el token 
-            const accessToken = createToken({
-                id: validateUser[1].id,
-                doc_id: validateUser[1].doc_id,
-                nombre: validateUser[1].nombre,
-                apellido: validateUser[1].apellido,
-                id_carrera: validateUser[1].id_carrera,
-                correo: validateUser[1].correo,
-                rol: validateUser[1].rol
-            }, '1d');
-
-            // retornamos la respuesta
+            const errorCase = errorResponse[responseLogin];
+            if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
             return res.json({
                 status: true,
-                message: 'Usuario verificado Correctamente',
-                user: {
-                    id: validateUser[1].id,
-                    doc_id: validateUser[1].doc_id,
-                    nombre: validateUser[1].nombre,
-                    apellido: validateUser[1].apellido,
-                    telefono: validateUser[1].telefono,
-                    id_carrera: validateUser[1].id_carrera,
-                    correo: validateUser[1].correo,
-                    rol: validateUser[1].rol
-                },
-                accessToken: accessToken
+                message: 'Usuario verificado correctamente',
+                user: responseLogin.userData,
+                accessToken: responseLogin.accessToken
             });
-
         }
 
+        /// proceso para login admin
+        const emailDomainAdmin = checkEmailDomain(validate.correo, 'TYPE_ADMIN');
+        if (emailDomainAdmin) {
+            const responseLogin = await authService.adminLogin(validate);
 
-        if (expressionAdmin.test(validate.correo)) {  // acciones si es un correo administrador
-
-            // verificamos que el correo sea de un usuario existente en el sistema
-            const validateAdminUser = await authService.verifyEmailAdmin(validate.correo);
-            if (!validateAdminUser[0]) {
-                return res.status(409).json({ status: false, error: 'Credenciales incorrectas, verifique!' })
-            }
-
-            // comparamos la clave 
-            const compareKey = await verifyEncryptData(validate.clave, validateAdminUser[1].clave);
-            if (!compareKey) {
-                return res.status(409).json({ status: false, error: 'Credenciales incorrectas' })
-            }
-            // Creamos el token
-            const accessToken = createToken({
-                id: validateAdminUser[1].id,
-                doc_id: validateAdminUser[1].doc_id,
-                nombre: validateAdminUser[1].nombre,
-                apellido: validateAdminUser[1].apellido,
-                telefono: validateAdminUser[1].telefono,
-                id_coordinacion: validateAdminUser[1].id_coordinacion,
-                correo: validateAdminUser[1].correo,
-                rol: validateAdminUser[1].rol
-            }, '1d')
-
-            // retornamos una respuesta si todo a ido bien 
+            const errorCase = errorResponse[responseLogin];
+            if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
             return res.json({
                 status: true,
-                message: 'Usuario verificado Correctamente',
-                user: {
-                    id: validateAdminUser[1].id,
-                    doc_id: validateAdminUser[1].doc_id,
-                    nombre: validateAdminUser[1].nombre,
-                    apellido: validateAdminUser[1].apellido,
-                    telefono: validateAdminUser[1].telefono,
-                    id_coordinacion: validateAdminUser[1].id_coordinacion,
-                    correo: validateAdminUser[1].correo,
-                    rol: validateAdminUser[1].rol
-                },
-                accessToken: accessToken
-            })
+                message: 'Usuario verificado correctamente',
+                user: responseLogin.userData,
+                accessToken: responseLogin.accessToken
+            });
         }
 
-
-        throw new Error('Algo a salido mal');
-    } catch (error) {
-        res.status(400).json({
+        return res.status(409).json({
             status: false,
-            error: error.message
+            error: 'El dominio del correo no es un dominio valido para el sistema.'
         })
+    } catch (error) {
+        handlerHttpErrors(res, `${error.message}`);
     }
 }
 
@@ -364,12 +245,12 @@ const loginManagement = async (req, res) => {
 
 
 export default {
+    getCampus,
+    getFacultiesByCampus,
+    getCoordinationByFacultie,
+    getCareersByCoordination,
     studentRegistration,
     adminRegistration,
-    getSedes,
-    getFacultadesBySede,
-    getCoordinacionByFacultad,
-    getCarrerasByCoordinacion,
-    loginManagement
+    loginManagement,
 }
 

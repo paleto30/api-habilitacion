@@ -9,3 +9,17 @@ export const checkUserRole = (requiredRole) => {
         next();  // si todo estuvo ok, da permiso 
     };
 };
+
+
+
+
+export const checkUserRoles = (requiredRole) => {
+    return (req, res, next) => {
+        const userRole = req.usuario.rol;
+
+        if (!requiredRole.includes(userRole)) {
+            return res.status(401).json({ status: false, error: 'No cuenta con permisos para realizar esta acción' })
+        }
+        next();
+    }
+}

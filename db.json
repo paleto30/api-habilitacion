@@ -1,0 +1,61 @@
+{
+    "referencias_plataforma": [
+        {
+            "id": 7,
+            "REF_PAY_GENERATED": "0301088802",
+            "estado_pago": true 
+            
+        },
+        {
+            "id": 6,
+            "REF_PAY_GENERATED": "0301088801",
+            "estado_pago": true 
+            
+        },
+        {
+            "id": 5,
+            "REF_PAY_GENERATED": "0301088800",
+            "estado_pago": true
+        },
+        {
+            "id": 4,
+            "REF_PAY_GENERATED": "0301088799",
+            "estado_pago": true
+        },
+        {
+            "id": 3,
+            "REF_PAY_GENERATED": "0301088798",
+            "estado_pago": true
+        },
+        {
+            "id": 2,
+            "REF_PAY_GENERATED": "0301088797",
+            "estado_pago": true
+        },
+        {
+            "id": 1,
+            "REF_PAY_GENERATED": "0301088796",
+            "estado_pago": true
+        },
+        {
+            "id": 8,
+            "REF_PAY_GENERATED": "0301088795",
+            "estado_pago": true
+        },
+        {
+            "id": 9,
+            "REF_PAY_GENERATED": "0301088794",
+            "estado_pago": true
+        },
+        {
+            "id": 10,
+            "REF_PAY_GENERATED": "0301088793",
+            "estado_pago": true
+        },
+        {
+            "id": 11,
+            "REF_PAY_GENERATED": "0301088792",
+            "estado_pago": true
+        }
+    ]
+}

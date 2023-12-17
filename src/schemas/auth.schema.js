@@ -4,10 +4,10 @@ import Joi from "joi";
 // schema para El registro de Estudiantes
 export const schemaStudentRegistration = Joi.object(
     {
-        doc_id: Joi.string().min(6).max(20).trim().required().messages({
+        doc_id: Joi.string().min(6).max(10).trim().required().messages({
             'string.base': 'El documento de identidad presenta problemas',
             'string.min': 'El documento de identidad debe tener minimo 6 caracteres',
-            'string.max': 'El documento de identidad debe tener maximo 20 caracteres',
+            'string.max': 'El documento de identidad debe tener maximo 10 caracteres',
             'any.required': 'El documento de indentidad es requerido'
         }),
         nombre: Joi.string().min(3).max(255).trim().required().messages({
