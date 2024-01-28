@@ -226,13 +226,13 @@ const adminLogin = async (credentials) => {
             doc_id: admin.doc_id,
             nombre: admin.nombre,
             apellido: admin.apellido,
-            id_carrera: admin.id_carrera,
+            id_coordinacion: admin.id_coordinacion,
             correo: admin.correo,
             rol: admin.rol
         }
-
         const accessToken = createToken(userData, '1d');
-
+        delete userData.id_coordinacion;
+        delete userData.doc_id;
         return { userData, accessToken } || {};
 
     } catch (error) {

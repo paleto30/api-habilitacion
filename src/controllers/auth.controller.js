@@ -22,7 +22,7 @@ const getCampus = async (req, res) => {
             sedes
         })
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 }
 
@@ -50,7 +50,7 @@ const getFacultiesByCampus = async (req, res) => {
             facultades
         })
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 }
 
@@ -79,7 +79,7 @@ const getCoordinationByFacultie = async (req, res) => {
 
 
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 }
 
@@ -107,7 +107,7 @@ const getCareersByCoordination = async (req, res) => {
         })
 
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 }
 
@@ -140,7 +140,7 @@ const studentRegistration = async (req, res) => {
             estudiante: response
         });
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 };
 
@@ -176,7 +176,7 @@ const adminRegistration = async (req, res) => {
             administrador: resAdmin
         });
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`, error.message);
+        handlerHttpErrors(res, error.message);
     }
 }
 
@@ -236,7 +236,7 @@ const loginManagement = async (req, res) => {
             error: 'El dominio del correo no es un dominio valido para el sistema.'
         })
     } catch (error) {
-        handlerHttpErrors(res, `${error.message}`);
+        handlerHttpErrors(res, error.message);
     }
 }
 
