@@ -59,13 +59,10 @@ const getStudentListFilter = async (params, id_coordinacion) => {
             baseQuery += ` AND ${condition}`;
         }
 
-        baseQuery += ` LIMIT ${amount} OFFSET ${offset}`
+        baseQuery += ` ORDER BY tg_e.id DESC LIMIT ${amount} OFFSET ${offset} `
 
         const studentList = await db.query(baseQuery, {
-            type: QueryTypes.SELECT,
-            replacements: {
-                id_coordinacion
-            }
+            type: QueryTypes.SELECT
         })
 
         return {
@@ -83,12 +80,92 @@ const getStudentListFilter = async (params, id_coordinacion) => {
 
 
 
+// funcion del servicio para obtener las habilitaciones paginadas y filtradas
+const getRecoveryListFilter = async (params, id_coordinacion) => {
+
+    let baseQuery = `
+        SELECT 
+            tg_h.id,
+            tg_h.referencia_pago,
+            tg_h.id_estudiante,
+            CONCAT(tg_e.apellido,' ',tg_e.nombre) as estudiante,
+            tg_h.id_materia,
+            tg_m.nombre AS materia,
+            tg_h.id_profesor,
+            CONCAT(tg_p.nombre,' ',tg_p.apellido) AS profesor,
+            DATE_FORMAT(tg_h.created_at, '%Y-%m-%d  %H:%i') as fecha_aprovacion
+        FROM tg_habilitaciones AS tg_h 
+        INNER JOIN tg_materia AS tg_m ON tg_h.id_materia = tg_m.id
+        INNER JOIN tg_profesor AS tg_p ON tg_h.id_profesor = tg_p.id
+        INNER JOIN tg_estudiante as tg_e ON tg_h.id_estudiante = tg_e.id
+        INNER JOIN tg_carrera AS tg_c ON tg_e.id_carrera = tg_c.id
+        INNER JOIN tg_coordinacion AS tg_co ON tg_c.id_coordinacion = tg_co.id
+        WHERE tg_co.id = ${id_coordinacion}
+    `;
+    let page = params.page || 1;
+    let amount = params.amount || 15;
+    let offset = (page - 1) * amount;
+    try {
+
+        const totalRecords = await db.query(`
+            SELECT COUNT(*) as total
+            FROM tg_habilitaciones AS tg_h 
+            INNER JOIN tg_estudiante as tg_e ON tg_h.id_estudiante = tg_e.id
+            INNER JOIN tg_carrera AS tg_c ON tg_e.id_carrera = tg_c.id
+            INNER JOIN tg_coordinacion AS tg_co ON tg_c.id_coordinacion = tg_co.id
+            WHERE tg_co.id = :id_coordinacion
+        `, {
+            type: QueryTypes.SELECT,
+            replacements: { id_coordinacion },
+            plain: true
+        });
+
+        const totalPage = Math.ceil(totalRecords.total / amount);
+
+        const filters = {
+            reference: `tg_h.referencia_pago LIKE '%${params.reference}'`,
+            student: `(LOWER(CONCAT(tg_e.apellido, ' ', tg_e.nombre)) LIKE LOWER('%${params.student}%')
+            OR LOWER(tg_e.apellido) LIKE LOWER('%${params.student}%')
+            OR LOWER(tg_e.nombre) LIKE LOWER('%${params.student}%'))`
+        };
+
+        let condition = null;
+        Object.keys(filters).forEach(key => {
+            if (params[key]) {
+                condition = filters[key];
+            }
+        });
+
+        if (condition) {
+            baseQuery += ` AND ${condition}`;
+        }
+
+        baseQuery += ` ORDER BY tg_h.id DESC LIMIT ${amount} OFFSET ${offset} `;
+
+        const ratingList = await db.query(baseQuery, { type: QueryTypes.SELECT });
+
+        return {
+            total_records: totalRecords.total,
+            current_page: Number(page),
+            total_page: totalPage,
+            total_records_found: ratingList.length,
+            ratingList
+        };
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+
+
 
 
 
 
 export default {
-    getStudentListFilter
+    getStudentListFilter,
+    getRecoveryListFilter
 }
 
 
