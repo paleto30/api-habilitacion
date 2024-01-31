@@ -55,7 +55,7 @@ const getStudentList = async (req, res) => {
  *      }
  */
 const getQualificationsList = async (req, res) => {
-    try {    
+    try {
         const id_coordinacion = req.DTO.id_coo;
         delete req.DTO.id_coo;
         const response = await adminService.getRecoveryListFilter(req.DTO, id_coordinacion);
@@ -72,7 +72,34 @@ const getQualificationsList = async (req, res) => {
 
 
 
+
+/**
+ * @author Andres Galvis
+ * @description Funcion para obtener los datos detalles de la habilitacion
+ * @GET
+ * @PATH /api/v1/admins/recovery-details/:id_recovery
+*/
+const getDetailsInformacion = async (req, res) => {
+    const errorRes = {
+        'RECOVERY_NOT_FOUND': { status: 404, error: 'El registro de habilitacion no fue encontrado.' }
+    }
+    try {
+        const response = await adminService.getRecoveryDetails(req.DTO);
+        const errorCase = errorRes[response];
+        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
+        return res.json({
+            status: true,
+            message: 'Consultado correctamente',
+            response
+        });
+    } catch (error) {
+        handlerHttpErrors(res, error.message);
+    }
+}
+
+
 export default {
     getStudentList,
-    getQualificationsList
+    getQualificationsList,
+    getDetailsInformacion
 }
