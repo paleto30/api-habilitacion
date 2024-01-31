@@ -1,5 +1,10 @@
 import { QueryTypes } from "sequelize";
 import db from "../db/conexion.js";
+import EstudianteModel from "../models/estudiante.model.js";
+import ProfesorModel from "../models/profesor.model.js";
+import CarreraModel from "../models/carrera.model.js";
+import MateriaModel from "../models/materia.model.js";
+import HabilitacionModel from "../models/habilitaciones.model.js";
 
 
 
@@ -158,14 +163,49 @@ const getRecoveryListFilter = async (params, id_coordinacion) => {
 
 
 
+// funcion del servicio para retornar los detalles de la habilitacion 
+const getRecoveryDetails = async ({ id_recovery }) => {
+    try {
 
+        const recovey = await HabilitacionModel.findOne({
+            attributes: ['id', 'referencia_pago', 'img_factura', 'img_recibo_pago', 'created_at'],
+            where: { id: id_recovery },
+            include: [
+                {
+                    model: EstudianteModel,
+                    attributes: ['id', 'doc_id', 'nombre', 'apellido', 'telefono', 'correo'],
+                    include: [
+                        {
+                            model: CarreraModel,
+                            attributes: ['id', 'codigo', 'nombre']
+                        }
+                    ]
+                },
+                {
+                    model: ProfesorModel,
+                    attributes: ['id', 'cedula', 'nombre', 'apellido', 'telefono', 'correo']
+                },
+                {
+                    model: MateriaModel,
+                    attributes: ['id', 'codigo', 'nombre', 'creditos']
+                }
+            ],
+        })
 
+        if (!recovey) return "RECOVERY_NOT_FOUND";
+
+        return recovey;
+    } catch (error) {
+        throw error;
+    }
+}
 
 
 
 export default {
     getStudentListFilter,
-    getRecoveryListFilter
+    getRecoveryListFilter,
+    getRecoveryDetails
 }
 
 
