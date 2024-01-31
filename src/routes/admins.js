@@ -1,6 +1,6 @@
 import { Router } from "express";
 import adminController from "../controllers/admin.controller.js";
-import { DTOvalidateQueryFilters, DTOvalidateRecoveryTable } from "../middlewares/DTO/admin.DTO.js";
+import { DTOvalidateQueryFilters, DTOvalidateRecoveryDetails, DTOvalidateRecoveryTable } from "../middlewares/DTO/admin.DTO.js";
 import verifyAccessToken from "../middlewares/verifyAccessToken.js";
 import { checkUserRole } from "../middlewares/checkRole.js";
 
@@ -24,6 +24,16 @@ router.get(
     '/recovery-list',
     [verifyAccessToken, checkUserRole(2), DTOvalidateRecoveryTable],
     adminController.getQualificationsList
+);
+
+
+
+/* ruta para mostrar la informacion */
+router.get(
+    '/recovery-details/:id_recovery', //*  id, id_estudiante, id_profesor <- retorna full data 
+    [verifyAccessToken, checkUserRole(2), DTOvalidateRecoveryDetails],
+    adminController.getDetailsInformacion
 )
+
 
 export default router;
