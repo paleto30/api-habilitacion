@@ -1,5 +1,5 @@
 import { handlerHttpErrors } from '../../helpers/errorhandler.js'
-import { schemaValidateQueryParamsFilters, schemaValidateRecoveryDetails, schemaValidateRecoveryTable } from '../../schemas/admins.schema.js'
+import { schemaValidareNameFile, schemaValidateQueryParamsFilters, schemaValidateRecoveryDetails, schemaValidateRecoveryTable } from '../../schemas/recoveries.schema.js'
 
 
 
@@ -11,7 +11,7 @@ export const DTOvalidateQueryFilters = async (req, res, next) => {
         req.paramsDTO = validate;
         next();
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
     }
 }
 
@@ -26,7 +26,7 @@ export const DTOvalidateRecoveryTable = async (req, res, next) => {
         req.DTO = validate;
         next();
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
     }
 }
 
@@ -38,6 +38,18 @@ export const DTOvalidateRecoveryDetails = async (req, res, next) => {
         req.DTO = validate;
         next();
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
+    }
+}
+
+
+
+export const DTOvalidateNameFile = async (req, res, next) => {
+    try {
+        const validate = await schemaValidareNameFile.validateAsync(req.params);
+        req.DTO = validate
+        next();
+    } catch (error) {
+        handlerHttpErrors(res, error);
     }
 }

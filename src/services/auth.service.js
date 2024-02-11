@@ -8,6 +8,8 @@ import CarreraModel from "../models/carrera.model.js";
 import CoordinacionModel from "../models/coordinacion.model.js";
 import { checkEmailDomain } from '../helpers/errorhandler.js'
 import { createToken } from "../helpers/jwtFunctions.js";
+import FacultadModel from "../models/facultad.model.js";
+import { ConflictException, NotFoundException, UnauthorizedException } from "../helpers/classError.js";
 
 
 
@@ -17,7 +19,7 @@ import { createToken } from "../helpers/jwtFunctions.js";
 const getAvailableCampus = async () => {
     try {
         const campusList = await SedeModel.findAll({ attributes: ['id', 'nombre'] });
-        return campusList || [];
+        return campusList;
     } catch (error) {
         throw error;
     }
@@ -32,14 +34,16 @@ const getAvailableCampus = async () => {
 */
 const getAvailableFaculties = async (id_campus) => {
     try {
-        const faculties = await db.query(`
-            SELECT id, codigo, nombre FROM tg_facultad
-            WHERE id_sede = :id_campus;
-        `, {
-            replacements: { id_campus },
-            type: QueryTypes.SELECT
+        const sede = await SedeModel.findByPk(id_campus);
+        if (!sede) throw new NotFoundException(`No existe sede con ID ${id_campus}`);
+
+        const faculties = await FacultadModel.findAll({
+            attributes: ['id', 'codigo', 'nombre'],
+            where: {
+                id_sede: id_campus
+            }
         });
-        return faculties || [];
+        return faculties;
     } catch (error) {
         throw error;
     }
@@ -54,14 +58,16 @@ const getAvailableFaculties = async (id_campus) => {
 */
 const getAvailableCoordination = async (id_faculties) => {
     try {
-        const coordinations = await db.query(`
-            SELECT DISTINCT(id) AS id, nombre  FROM tg_coordinacion WHERE id_facultad = :id_faculties
-            ORDER BY nombre ASC
-        `, {
-            replacements: { id_faculties },
-            type: QueryTypes.SELECT
+        const facultad = await FacultadModel.findByPk(id_faculties);
+        if (!facultad) throw new NotFoundException(`No existe facultad con ID ${id_faculties}`)
+        const coordinations = await CoordinacionModel.findAll({
+            attributes: ['id', 'nombre'],
+            where: {
+                id_facultad: id_faculties
+            },
+            order: [['nombre', 'ASC']]
         })
-        return coordinations || [];
+        return coordinations;
     } catch (error) {
         throw error;
     }
@@ -75,15 +81,17 @@ const getAvailableCoordination = async (id_faculties) => {
 */
 const getAvailableCareers = async (id_coordination) => {
     try {
-        const careers = await db.query(`
-            SELECT DISTINCT(id) as id, nombre FROM tg_carrera WHERE id_coordinacion = :id_coordination
-            ORDER BY nombre ASC
-        `, {
-            replacements: { id_coordination },
-            type: QueryTypes.SELECT
-        });
 
-        return careers || [];
+        const coordination = await CoordinacionModel.findByPk(id_coordination);
+        if (!coordination) throw new NotFoundException(`No existe coordinacioncon ID ${id_coordination}`)
+        const careers = await CarreraModel.findAll({
+            attributes: ['id', 'nombre'],
+            where: {
+                id_coordinacion: id_coordination
+            },
+            order: [['nombre', 'ASC']]
+        });
+        return careers;
     } catch (error) {
         throw error;
     }
@@ -99,16 +107,20 @@ const getAvailableCareers = async (id_coordination) => {
 const studentRegister = async (student) => {
     try {
         const emailDomain = checkEmailDomain(student.correo, 'TYPE_STUDENT');
-        if (!emailDomain) return "EMAIL_DOMAIN_INVALID";
+        if (!emailDomain)
+            throw new ConflictException('El dominio del correo no es valido.')
 
         const studentDoc = await EstudianteModel.findOne({ where: { doc_id: student.doc_id } });
-        if (studentDoc) return "EXISTING_ID_DOCUMENT";
+        if (studentDoc)
+            throw new ConflictException('El documento de identidad ya esta registrado.');
 
         const studentEmail = await EstudianteModel.findOne({ where: { correo: student.correo } });
-        if (studentEmail) return `EXISTING_EMAIL`;
+        if (studentEmail)
+            throw new ConflictException('El correo electronico ya esta registrado.')
 
         const careerValid = await CarreraModel.findByPk(student.id_carrera);
-        if (!careerValid) return "NOT_EXISTING_CAREER";
+        if (!careerValid)
+            return new NotFoundException('La carrera no es valida.');
 
         student.nombre = student.nombre.toUpperCase();
         student.apellido = student.apellido.toUpperCase();
@@ -134,57 +146,19 @@ const studentRegister = async (student) => {
 
 
 
-/* 
-    funcion encargada del registro para un administrador
-*/
-const adminRegister = async (admin) => {
-    try {
-
-        const emailDomain = checkEmailDomain(admin.correo, 'TYPE_ADMIN');
-        if (!emailDomain) return "EMAIL_DOMAIN_INVALID";
-
-        const adminDoc = await AdministradorModel.findOne({ where: { doc_id: admin.doc_id } });
-        if (adminDoc) return "EXISTING_ID_DOCUMENT";
-
-        const adminEmail = await AdministradorModel.findOne({ where: { correo: admin.correo } });
-        if (adminEmail) return "EXISTING_EMAIL";
-
-        const coordinationValid = await CoordinacionModel.findByPk(admin.id_coordinacion);
-        if (!coordinationValid) return "NOT_EXISTING_COORDINATION";
-
-        admin.nombre = admin.nombre.toUpperCase();
-        admin.apellido = admin.apellido.toUpperCase();
-        admin.correo = admin.correo.toLowerCase();
-        admin.clave = await encryptData(admin.clave, 11);
-
-        const newAdmin = await AdministradorModel.create(admin);
-        const response = {
-            id: newAdmin.id,
-            oc_id: newAdmin.doc_id,
-            nombre: newAdmin.nombre,
-            apellido: newAdmin.apellido,
-            correo: newAdmin.correo
-        };
-        return response;
-    } catch (error) {
-        throw error;
-    }
-}
-
-
-
-
 
 /* 
     funcion encargada de procesar el login para Estudiantes
 */
-const studentLogin = async (credentials) => {
+const studentLogin = async (correo, clave) => {
     try {
-        const student = await EstudianteModel.findOne({ where: { correo: credentials.correo } });
-        if (!student) return "UNREGISTERED_USER";
+        const student = await EstudianteModel.findOne({ where: { correo: correo } });
+        if (!student)
+            throw new NotFoundException('Usuario no registrado.');
 
-        const verifiedPassword = await verifyEncryptData(credentials.clave, student.clave);
-        if (!verifiedPassword) return "PASSWORD_INCORRECT";
+        const verifiedPassword = await verifyEncryptData(clave, student.clave);
+        if (!verifiedPassword)
+            throw new UnauthorizedException('Contraseña incorrecta.');
 
         const userData = {
             id: student.id,
@@ -197,8 +171,9 @@ const studentLogin = async (credentials) => {
         }
 
         const accessToken = createToken(userData, '1d');
-
-        return { userData, accessToken } || {};
+        delete userData.doc_id;
+        delete userData.id_carrera
+        return { userData, accessToken };
 
     } catch (error) {
         throw error;
@@ -213,13 +188,15 @@ const studentLogin = async (credentials) => {
 /* 
     funcion encargada de procesar el login para Estudiantes
 */
-const adminLogin = async (credentials) => {
+const adminLogin = async (correo, clave) => {
     try {
-        const admin = await AdministradorModel.findOne({ where: { correo: credentials.correo } });
-        if (!admin) return "UNREGISTERED_USER";
+        const admin = await AdministradorModel.findOne({ where: { correo: correo } });
+        if (!admin)
+            throw new NotFoundException('Usuario no registrado.');
 
-        const verifiedPassword = await verifyEncryptData(credentials.clave, admin.clave);
-        if (!verifiedPassword) return "PASSWORD_INCORRECT";
+        const verifiedPassword = await verifyEncryptData(clave, admin.clave);
+        if (!verifiedPassword)
+            throw new UnauthorizedException('Contraseña incorrecta.');
 
         const userData = {
             id: admin.id,
@@ -233,7 +210,7 @@ const adminLogin = async (credentials) => {
         const accessToken = createToken(userData, '1d');
         delete userData.id_coordinacion;
         delete userData.doc_id;
-        return { userData, accessToken } || {};
+        return { userData, accessToken };
 
     } catch (error) {
         throw error;
@@ -249,7 +226,7 @@ export default {
     getAvailableCoordination,
     getAvailableCareers,
     studentRegister,
-    adminRegister,
+    //adminRegister,
     studentLogin,
     adminLogin
 }

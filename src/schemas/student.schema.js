@@ -30,7 +30,6 @@ export const schemaValidateAuthorizationRequest = Joi.object(
 )
 
 
-
 export const shcemaValidateTeachersForSubject = Joi.object(
     {
         id_materia: Joi.number().integer().required().messages(
@@ -44,9 +43,6 @@ export const shcemaValidateTeachersForSubject = Joi.object(
 );
 
 
-
-
-
 export const validateHistoryParamas = Joi.object(
     {
         id_student: Joi.number().integer().required().messages(
@@ -58,3 +54,5 @@ export const validateHistoryParamas = Joi.object(
         ),
     }
 );
+
+

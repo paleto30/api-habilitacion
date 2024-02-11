@@ -1,8 +1,24 @@
 
+function getDateError() {
+    const fecha = new Date();
+    const dia = fecha.getDate();
+    const mes = fecha.getMonth();
+    const anio = fecha.getFullYear();
+    const horas = fecha.getHours();
+    const minutos = fecha.getMinutes();
+    const segundos = fecha.getSeconds();
+    return `${dia}/${mes}/${anio} - ${horas}:${minutos}:${segundos}`;
+}
 
-export const handlerHttpErrors = (res, error, errorRaw = 'Ocurrio un error.') => {
-    console.error(` <Error> Log-handler-error -> ${errorRaw}`);
-    res.status(400).json({ status: false, error: error });
+
+/**
+ * 
+ * @param {Request} res 
+ * @param {string} error 
+ */
+export const handlerHttpErrors = (res, error) => {
+    console.error(`[ ${getDateError()} ] Error -> ${error.message}`);
+    res.status(error.httpCode || 400).json({ status: false, error: error.message });
 }
 
 
@@ -29,4 +45,7 @@ export const checkEmailDomain = (email, typeUser) => {
 
     return actions[typeUser](email);
 }
+
+
+
 

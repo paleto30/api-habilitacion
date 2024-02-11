@@ -1,5 +1,5 @@
 import { handlerHttpErrors } from "../helpers/errorhandler.js"
-import adminService from "../services/admin.service.js";
+import recoveriesService from "../services/recoveries.service.js";
 
 
 
@@ -25,14 +25,14 @@ const getStudentList = async (req, res) => {
     try {
         const id_coordinacion = req.paramsDTO.id_coo;
         delete req.paramsDTO.id_coo
-        const response = await adminService.getStudentListFilter(req.paramsDTO, id_coordinacion);
+        const response = await recoveriesService.getStudentListFilter(req.paramsDTO, id_coordinacion);
         return res.status(200).json({
             status: true,
             message: 'Consultado correctamente',
             response
         })
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
     }
 }
 
@@ -58,14 +58,14 @@ const getQualificationsList = async (req, res) => {
     try {
         const id_coordinacion = req.DTO.id_coo;
         delete req.DTO.id_coo;
-        const response = await adminService.getRecoveryListFilter(req.DTO, id_coordinacion);
+        const response = await recoveriesService.getRecoveryListFilter(req.DTO, id_coordinacion);
         return res.status(200).json({
             status: true,
             message: 'Consultado correctamente',
             response
         });
     } catch (error) {
-        handlerHttpErrors(req, error.message, error);
+        handlerHttpErrors(req, error);
     }
 }
 
@@ -80,26 +80,67 @@ const getQualificationsList = async (req, res) => {
  * @PATH /api/v1/admins/recovery-details/:id_recovery
 */
 const getDetailsInformacion = async (req, res) => {
-    const errorRes = {
-        'RECOVERY_NOT_FOUND': { status: 404, error: 'El registro de habilitacion no fue encontrado.' }
-    }
     try {
-        const response = await adminService.getRecoveryDetails(req.DTO);
-        const errorCase = errorRes[response];
-        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
+        const response = await recoveriesService.getRecoveryDetails(req.DTO);
         return res.json({
             status: true,
             message: 'Consultado correctamente',
             response
         });
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
     }
 }
+
+
+
+/**
+ * @author Andres Galvis
+ * @description Funcion para retornar el pdf de solicitud habilitacion
+ * @GET
+ * @PATH  /api/v1/admins/view-pdf/:name
+*/
+const sendPdfFile = async (req, res) => {
+    try {
+        const response = await recoveriesService.sendPdf(req.DTO.name)
+        res.sendFile(response)
+    } catch (error) {
+        handlerHttpErrors(res, error);
+    }
+}
+
+
+
+/**
+ * @author Andres Galvis
+ * @description Funcion para retornar el pdf de solicitud habilitacion
+ * @GET
+ * @PATH  /api/v1/admins/view-img/:name
+*/
+const sendImgFile = async (req, res) => {
+    try {
+        const response = await recoveriesService.sendImage(req.DTO.name)
+        res.sendFile(response)
+    } catch (error) {
+        handlerHttpErrors(res, error);
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 
 export default {
     getStudentList,
     getQualificationsList,
-    getDetailsInformacion
+    getDetailsInformacion,
+    sendPdfFile,
+    sendImgFile
 }

@@ -5,6 +5,8 @@ import ProfesorModel from "../models/profesor.model.js";
 import CarreraModel from "../models/carrera.model.js";
 import MateriaModel from "../models/materia.model.js";
 import HabilitacionModel from "../models/habilitaciones.model.js";
+import fileControl from "../helpers/fileControl.js";
+import { NotFoundException } from "../helpers/classError.js";
 
 
 
@@ -192,7 +194,7 @@ const getRecoveryDetails = async ({ id_recovery }) => {
             ],
         })
 
-        if (!recovey) return "RECOVERY_NOT_FOUND";
+        if (!recovey) throw new NotFoundException('El registro de habilitacion no fue encontrado.');
 
         return recovey;
     } catch (error) {
@@ -202,10 +204,41 @@ const getRecoveryDetails = async ({ id_recovery }) => {
 
 
 
+
+// funcion para retornarle la imagen
+const sendPdf = async (name) => {
+    try {
+        const img = fileControl.findFileInFolderAndReturnPath('storage/pdf/', name)
+        if (!img) {
+            throw new NotFoundException('El pdf no fue encontrado.');
+        }
+        return img;
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+// funcion para retornarle la imagen
+const sendImage = async (name) => {
+    try {
+        const imgPath = fileControl.findFileInFolderAndReturnPath('storage/images/', name)
+        if (!imgPath) {
+            throw new NotFoundException('La imagen no fue encontrada.');
+        }
+        return imgPath;
+    } catch (error) {
+        throw error;
+    }
+}
+
+
 export default {
     getStudentListFilter,
     getRecoveryListFilter,
-    getRecoveryDetails
+    getRecoveryDetails,
+    sendPdf,
+    sendImage
 }
 
 

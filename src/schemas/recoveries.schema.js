@@ -57,3 +57,11 @@ export const schemaValidateRecoveryDetails = Joi.object({
         }
     ),
 })
+
+
+
+export const schemaValidareNameFile = Joi.object(
+    {
+        name: Joi.string().trim().required()
+    }
+)
