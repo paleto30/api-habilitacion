@@ -92,7 +92,7 @@ export const schemaAdminRegistration = Joi.object(
 );
 
 
-export const schemaStudentLogin = Joi.object(
+export const schemaLogin = Joi.object(
     {
         correo: Joi.string().email({ minDomainSegments: 3,maxDomainSegments:4, tlds: { allow: ['co'] } }).trim().required().messages({
             'string.base': 'Problemas en el campo de correo, verifique',
@@ -107,3 +107,26 @@ export const schemaStudentLogin = Joi.object(
         }),
     }
 );
+
+
+
+export const shemaIdSede = Joi.object(
+    {
+        id_sede: Joi.number().integer().required()
+    }
+)
+
+
+export const shemaIdFacultad = Joi.object(
+    {
+        id_facultad: Joi.number().integer().required()
+    }
+)
+
+
+export const shemaIdCoordinacion = Joi.object(
+    {
+        id_coordinacion: Joi.number().integer().required()
+    }
+)
+

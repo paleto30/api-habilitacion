@@ -4,7 +4,7 @@ import db from "../db/conexion.js";
 
 
 // modelo de estudiante 
-const MateriaModel = db.define('materia', {
+const MateriaModel = db.define('materias', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

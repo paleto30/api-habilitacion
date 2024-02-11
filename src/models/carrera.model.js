@@ -3,7 +3,7 @@ import { DataTypes } from "sequelize";
 
 
 
-const CarreraModel = db.define('',{
+const CarreraModel = db.define('carrera',{
     id:{
         type: DataTypes.INTEGER,
         primaryKey: true,

@@ -1,13 +1,13 @@
 import { QueryTypes } from 'sequelize';
 import db, { getDbInstance } from '../db/conexion.js';
 import EstudianteModel from '../models/estudiante.model.js';
-import { idIsNumber } from '../helpers/errorhandler.js';
 import MateriaModel from '../models/materia.model.js';
 import HabilitacionModel from '../models/habilitaciones.model.js';
 import fileControl from '../helpers/fileControl.js';
 import ProfesorModel from '../models/profesor.model.js';
 import { sendEmail } from '../helpers/emailHandler.js';
 import { getTemplateToSendTeacher, getTheEnablementEmailTemplate } from '../helpers/templatesHtml.js';
+import { ConflictException, NotFoundException, UnprocessableException } from '../helpers/classError.js';
 
 
 /*
@@ -15,10 +15,10 @@ import { getTemplateToSendTeacher, getTheEnablementEmailTemplate } from '../help
 */
 const getSubjectsAvailableToStudent = async (id_student) => {
     try {
-        if (!idIsNumber(id_student)) return "ID_IS_INVALID";
 
         const existStudent = await EstudianteModel.findByPk(id_student);
-        if (!existStudent) return "RECORD_NOT_FOUND";
+        if (!existStudent)
+            throw new NotFoundException('El estudiante no existe.');
 
         const results = await db.query(`
             SELECT tg_ma.id as id_materia, tg_ma.codigo, tg_ma.nombre 
@@ -33,7 +33,6 @@ const getSubjectsAvailableToStudent = async (id_student) => {
             {
                 replacements: { id_student }, type: QueryTypes.SELECT
             });
-
         return results;
     } catch (error) {
         throw error;
@@ -63,7 +62,8 @@ async function getEnableReference(ref) {
 const findTeachersForSubject = async (id_materia) => {
     try {
         const validSubject = await MateriaModel.findByPk(id_materia);
-        if (!validSubject) return "SUBJECT_NOT_FOUND";
+        if (!validSubject)
+            throw new NotFoundException('La Materia que ingreso no existe.');
 
         const teacherForSubject = await db.query(`
             SELECT tg_p.id, CONCAT(tg_p.nombre," ",tg_p.apellido) as nombre
@@ -77,7 +77,7 @@ const findTeachersForSubject = async (id_materia) => {
             type: QueryTypes.SELECT
         });
 
-        return teacherForSubject || [];
+        return teacherForSubject;
 
     } catch (error) {
         throw error;
@@ -95,30 +95,30 @@ const makeAuthorizationRequest = async (request, files) => {
     try {
 
         const existStudent = await EstudianteModel.findByPk(request.id_estudiante);
-        if (!existStudent) return "STUDENT_NOT_FOUND";
+        if (!existStudent) throw new NotFoundException('El estudiante que solicita la habilitacion no existe en el sistema.');
 
         const existSubject = await MateriaModel.findByPk(request.id_materia);
-        if (!existSubject) return "SUBJECT_NOT_FOUND";
+        if (!existSubject) throw new NotFoundException('La materia que solicita habilitar no existe.');
 
         const existeTeacher = await ProfesorModel.findByPk(request.id_profesor);
-        if (!existeTeacher) return "TEACHER_NOT_FOUND";
+        if (!existeTeacher) throw new NotFoundException('El profesor no existe');
 
         // validar que la referencia haya sido generada por el sistema uts
         const legalReference = await getEnableReference(`${request.referencia}`);
-        if (!legalReference) return 'REFERENCE_NOT_VALID';
+        if (!legalReference) throw new UnprocessableException('El numero de referencia que ingreso no es valido. porfavor verifique.');;
         // validar que la referencia este en un estado pago 
-        if (!legalReference.estado_pago) return "UNPAID_REFERENCE";
+        if (!legalReference.estado_pago) throw new UnprocessableException('Debe pagar el valor de la referencia, antes de solicitar la habilitación.');
 
         // validar que la referencia no haya sido registrada antes en el nuevo sistema
         const uniqueReference = await HabilitacionModel.findOne({ where: { referencia_pago: request.referencia } })
-        if (uniqueReference) return "EXISTING_REFERENCE";
+        if (uniqueReference) throw new ConflictException('La referencia que ingreso ya esta registrada, genere una nueva referencia para realizar la solicitud.');
 
-        if (Object.keys(files).length !== 2) return "INCOMPLETE_FILES";
+        if (Object.keys(files).length !== 2) throw new UnprocessableException('Los archivos necesarios para la solicitud no fueron cargados, porfavor verifique.');
 
         // verificamos la validez de los archivos y revisamos si son los esperados. validamos si el objeto files cumple con lo que esperamos que llegue
         if (!fileControl.validateFilesObjectKeys(files)) {
             fileControl.removeAllFilesOfDirLoaded(files);
-            return "INCORRECT_FILES"
+            throw new UnprocessableException('Los archivos cargados no son procesables.');
         }
 
         const newAuthorization = await HabilitacionModel.create({
@@ -191,11 +191,11 @@ async function sendProcessEmails(student, teacher, subject, reference, fecha_apr
 
 
 const getHistoryOfRequestByStudent = async ({ id_student }) => {
-
     try {
 
         const student = await EstudianteModel.findByPk(id_student);
-        if (!student) return "STUDENT_NOT_FOUND";
+        if (!student)
+            throw new NotFoundException('El estudiante no existe');
 
         const listOfRequest = await db.query(`
             SELECT 
@@ -217,7 +217,6 @@ const getHistoryOfRequestByStudent = async ({ id_student }) => {
         });
 
         return listOfRequest;
-
     } catch (error) {
         throw error
     }

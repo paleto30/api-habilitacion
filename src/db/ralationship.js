@@ -52,6 +52,16 @@ export const createRelationship = () => {
     PensumModel.belongsTo(CarreraModel, { foreignKey: 'id_carrera', targetKey: 'id' });
 
 
+    // relacion uno a muchos entre estudiante habilitaciones
+    EstudianteModel.hasMany(HabilitacionModel, { foreignKey: 'id_estudiante' });
+    HabilitacionModel.belongsTo(EstudianteModel, { foreignKey: 'id_estudiante', targetKey: 'id' });
+
+
+    // ralacion uno a muchos entre materia habilitaciones
+    MateriaModel.hasMany(HabilitacionModel, { foreignKey: 'id_materia' });
+    HabilitacionModel.belongsTo(MateriaModel, { foreignKey: 'id_materia', targetKey: 'id' })
+    
+
     // relacion muchos a muchos entre pensum y materias por medio de la tabla pensumMaterias
     PensumModel.belongsToMany(MateriaModel, { through: PensumMateriasModel, foreignKey: 'id_pensum', targetKey: 'id' });
     MateriaModel.belongsToMany(PensumModel, { through: PensumMateriasModel, foreignKey: 'id_materia', targetKey: 'id' });
@@ -66,7 +76,7 @@ export const createRelationship = () => {
     MateriaModel.belongsToMany(ProfesorModel, { through: MateriaProfesorModel, foreignKey: 'id_materia', targetKey: 'id' });
     ProfesorModel.belongsToMany(MateriaModel, { through: MateriaProfesorModel, foreignKey: 'id_profesor', targetKey: 'id' });
 
-    
+
     // relacion uno a muchos entre habilitaciones y profesor
     ProfesorModel.hasMany(HabilitacionModel, { foreignKey: 'id_profesor' })
     HabilitacionModel.belongsTo(ProfesorModel, { foreignKey: 'id_profesor', targetKey: 'id' });

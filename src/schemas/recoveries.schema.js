@@ -44,3 +44,24 @@ export const schemaValidateRecoveryTable = Joi.object(
         amount: Joi.number().integer()
     }
 )
+
+
+
+
+export const schemaValidateRecoveryDetails = Joi.object({
+    id_recovery: Joi.number().integer().required().messages(
+        {
+            'number.base': 'id_recovery debe ser un numero entero.',
+            'number.integer': 'id_recovery debe ser un numero entero.',
+            'any.required': 'id_recovery es requerido.',
+        }
+    ),
+})
+
+
+
+export const schemaValidareNameFile = Joi.object(
+    {
+        name: Joi.string().trim().required()
+    }
+)
