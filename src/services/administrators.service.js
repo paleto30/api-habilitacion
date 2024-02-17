@@ -1,8 +1,11 @@
 "use strict"
+import { QueryTypes } from "sequelize";
+import db from "../db/conexion.js";
 import { ConflictException, NotFoundException } from "../helpers/classError.js";
-import { encryptData } from "../helpers/encryptData.js";
+import { encryptData, verifyEncryptData } from "../helpers/encryptData.js";
 import AdministradorModel from "../models/administrador.model.js";
 import CoordinacionModel from "../models/coordinacion.model.js";
+import { checkEmailDomain } from "../helpers/errorhandler.js";
 
 
 
@@ -11,111 +14,66 @@ import CoordinacionModel from "../models/coordinacion.model.js";
 
 
 /* function */
-const getAll = async (params, id_coo) => {
+const getAll = async (params) => {
     let baseQuery = `
-    
+        SELECT 
+            tg_a.id, tg_a.doc_id, CONCAT(tg_a.apellido,' ',tg_a.nombre) AS nombre, tg_a.telefono, tg_a.correo, tg_a.rol,
+            tg_c.id as id_coo, tg_c.nombre as name_coo,
+            tg_f.id as id_fac, tg_f.codigo as code_fac, tg_f.nombre as name_fac,
+            tg_s.id as id_sede, tg_s.codigo as code_sede, tg_s.nombre as campus 
+        FROM tg_administrador AS tg_a
+        INNER JOIN tg_coordinacion AS tg_c ON tg_a.id_coordinacion = tg_c.id
+        INNER JOIN tg_facultad AS tg_f ON  tg_c.id_facultad = tg_f.id
+        INNER JOIN tg_sede AS tg_s ON tg_f.id_sede = tg_s.id
     `;
 
     let page = params.page || 1;
     let amount = params.amount || 15;
     let offset = (page - 1) * amount;
+
 
     try {
         const totalRecords = await AdministradorModel.count();
-        console.log(totalRecords);
         let totalPage = Math.ceil(totalRecords / amount)
-
-
         const filters = {
             doc_id: `LOWER(tg_a.doc_id) LIKE LOWER('${params.doc_id}%')`,
-            nombre: `(LOWER(CONCAT(tg_a.apellido, ' ', tg_a.nombre)) LIKE LOWER('%${params.nombre}%')
-                     OR LOWER(tg_a.apellido) LIKE LOWER('%${params.nombre}%')
-                     OR LOWER(tg_a.nombre) LIKE LOWER('%${params.nombre}%'))
+            name: `(LOWER(CONCAT(tg_a.apellido, ' ', tg_a.nombre)) LIKE LOWER('%${params.name}%')
+                     OR LOWER(tg_a.apellido) LIKE LOWER('%${params.name}%')
+                     OR LOWER(tg_a.nombre) LIKE LOWER('%${params.name}%'))
             `,
-            correo: `LOWER(tg_a.correo) LIKE LOWER('${params.email}%')`,
-            id_coo: `tg_a.id_coordinacion = ${id_coo}`,
-
-        }
-
-        return "ok";
-    } catch (error) {
-        throw error;
-    }
-}
-
-// funcion del servicio para obtener los estudiantes paginados y  filtraos si se necesita
-const getStudentListFilter = async (params, id_coordinacion) => {
-    let baseQuery = `
-        SELECT 
-            tg_e.id,
-            tg_e.doc_id as identificacion,
-            tg_e.apellido,
-            tg_e.nombre,
-            tg_e.telefono,
-            tg_e.correo,
-            tg_ca.nombre as carrera
-        FROM tg_estudiante as tg_e 
-        INNER JOIN tg_carrera as tg_ca ON tg_e.id_carrera = tg_ca.id
-        INNER JOIN tg_coordinacion as tg_co ON tg_ca.id_coordinacion = tg_co.id
-        WHERE tg_co.id = ${id_coordinacion} 
-    `;
-    let page = params.page || 1;
-    let amount = params.amount || 15;
-    let offset = (page - 1) * amount;
-
-    try {
-
-        const totalRecords = await db.query(`
-            SELECT COUNT(*) total
-            FROM tg_estudiante as tg_e 
-            INNER JOIN tg_carrera as tg_ca ON tg_e.id_carrera = tg_ca.id
-            INNER JOIN tg_coordinacion as tg_co ON tg_ca.id_coordinacion = tg_co.id
-            WHERE tg_co.id = :id_coordinacion;
-        `, {
-            type: QueryTypes.SELECT,
-            replacements: { id_coordinacion },
-            plain: true
-        });
-
-        let totalPage = Math.ceil(totalRecords.total / amount);
-
-        const filters = {
-            doc_id: `LOWER(tg_e.doc_id) LIKE LOWER('${params.doc_id}%')`,
-            last_name: `LOWER(tg_e.apellido) LIKE LOWER('%${params.last_name}%')`,
-            first_name: `LOWER(tg_e.nombre) LIKE LOWER('%${params.first_name}%')`,
-            phone: `LOWER(tg_e.telefono) LIKE LOWER('${params.phone}%')`,
-            email: `LOWER(tg_e.correo) LIKE LOWER('${params.email}%')`,
+            email: `LOWER(tg_a.correo) = LOWER('${params.email}')`,
         }
 
         let condition = null;
         Object.keys(filters).forEach(key => {
             if (params[key]) {
                 condition = filters[key];
+                console.log(params);
             }
-        });
+        })
 
         if (condition) {
-            baseQuery += ` AND ${condition}`;
+            baseQuery += ` WHERE ${condition}`;
         }
 
-        baseQuery += ` ORDER BY tg_e.id DESC LIMIT ${amount} OFFSET ${offset} `
+        baseQuery += ` ORDER BY tg_a.id DESC LIMIT ${amount} OFFSET ${offset}`
 
-        const studentList = await db.query(baseQuery, {
+        let admins = await db.query(baseQuery, {
             type: QueryTypes.SELECT
         })
 
         return {
-            total_records: totalRecords.total,
+            total_records: totalRecords,
             current_page: Number(page),
             total_page: totalPage,
-            total_records_found: studentList.length,
-            studentList
-        }
-
+            total_records_found: admins.length,
+            admins
+        };
     } catch (error) {
         throw error;
     }
 }
+
 
 
 
@@ -134,6 +92,9 @@ const getById = async (id) => {
 /* function */
 const createNew = async (params) => {
     try {
+
+        if (!checkEmailDomain(params.correo, 'TYPE_ADMIN')) throw new ConflictException(`El correo ${params.correo} no posee un dominio valido para un administrador, verifique.`)
+
         const adminDNI = await AdministradorModel.findOne({ where: { doc_id: params.doc_id } });
         if (adminDNI) throw new ConflictException(`Documento de identidad ${params.doc_id} ya registrado.`);
 
@@ -200,8 +161,8 @@ const update = async (admin) => {
 const deleteOne = async (id) => {
     try {
         const existAdmin = await getById(id);
-        const deletes = await existAdmin.destroy();
-        return deletes
+        await existAdmin.destroy();
+        return true
     } catch (error) {
         throw error;
     }
