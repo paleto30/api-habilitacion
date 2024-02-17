@@ -55,10 +55,6 @@ router.post(
     authController.loginManagement
 );
 
-/* ruta para hacer el registro de un admin */
-//router.post('/register/user-admin', [verifyToken, checkUserRoles([1, 2])], authController.adminRegistration);
-
-
 
 
 
