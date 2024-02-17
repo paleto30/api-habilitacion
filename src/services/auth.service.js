@@ -226,7 +226,6 @@ export default {
     getAvailableCoordination,
     getAvailableCareers,
     studentRegister,
-    //adminRegister,
     studentLogin,
     adminLogin
 }
