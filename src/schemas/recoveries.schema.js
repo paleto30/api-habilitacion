@@ -21,7 +21,7 @@ export const schemaValidateQueryParamsFilters = Joi.object(
                 'number.base': 'El telefono debe ser un numero.'
             }
         ),
-        email: Joi.string().trim(),
+        email: Joi.string().trim().email(),
         page: Joi.number().integer(),
         amount: Joi.number().integer()
     }
