@@ -1,10 +1,19 @@
 "use strict";
 import { handlerHttpErrors } from "../../helpers/errorhandler.js";
-import { createNewSchema, getByIdSchema, updateSchema } from "../../schemas/administrator.schema.js";
+import { createNewSchema, getByIdSchema, updateSchema, validaQuerysFilterSchema } from "../../schemas/administrator.schema.js";
 
 
 
-
+// DTO para validar los filtros si vienen en la ruta para get all
+export const validateQueryFiltersDto = async (req, res, next) => {
+    try {
+        const validate = await validaQuerysFilterSchema.validateAsync(req.query);
+        req.dto = validate;
+        next();
+    } catch (error) {
+        handlerHttpErrors(res, error);
+    }
+}
 
 
 
