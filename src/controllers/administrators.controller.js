@@ -15,14 +15,14 @@ import administratorsService from "../services/administrators.service.js";
 */
 const findAll = async (req, res) => {
     try {
-        const response = await administratorsService.getAll({});
+        const response = await administratorsService.getAll(req.dto);
         return res.json({
             success: true,
             message: "Consultado correctamente.",
             data: response
         });
     } catch (error) {
-        handlerHttpErrors(res, error.message);
+        handlerHttpErrors(res, error);
     }
 }
 
@@ -114,7 +114,7 @@ const deteleOne = async (req, res) => {
         return res.json({
             success: true,
             message: 'Eliminación exitosa',
-            data: response
+            removed: response
         })
     } catch (error) {
         handlerHttpErrors(res, error);
