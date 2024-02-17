@@ -119,43 +119,6 @@ const studentRegistration = async (req, res) => {
 
 
 
-/** 
-    @author: Andres Galvis
-    @description: funcion para realizar el registro de un Administrador dentro de la plataforma
-    @POST
-    @PATH : '/api/v1/authentication/register/user-admin' 
-*/
-
-/* const adminRegistration = async (req, res) => {
-
-    const errorResponse = {
-        'EMAIL_DOMAIN_INVALID': { status: 409, error: `El dominio del correo no es valido.` },
-        'EXISTING_ID_DOCUMENT': { status: 409, error: `El documento de identidad ya esta registrado.` },
-        'EXISTING_EMAIL': { status: 409, error: `El correo electronico ya esta registrado.` },
-        'NOT_EXISTING_COORDINATION': { status: 404, error: `La coordinacion no es valida.` }
-    }
-
-    try {
-        const { body } = req;
-        const validate = await schemaAdminRegistration.validateAsync(body);
-        const resAdmin = await authService.adminRegister(validate);
-
-        const errorCase = errorResponse[resAdmin];
-        if (errorCase) return res.status(errorCase.status).json({ status: false, error: errorCase.error });
-
-        return res.status(201).json({
-            status: true,
-            message: 'Registrado correctamente',
-            administrador: resAdmin
-        });
-    } catch (error) {
-        handlerHttpErrors(res, error.message);
-    }
-} */
-
-
-
-
 
 /** 
     @author: Andres Galvis 
@@ -206,7 +169,6 @@ export default {
     getCoordinationByFacultie,
     getCareersByCoordination,
     studentRegistration,
-    //adminRegistration,
     loginManagement,
 }
 
