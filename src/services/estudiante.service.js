@@ -111,7 +111,7 @@ const makeAuthorizationRequest = async (request, files) => {
 
         // validar que la referencia no haya sido registrada antes en el nuevo sistema
         const uniqueReference = await HabilitacionModel.findOne({ where: { referencia_pago: request.referencia } })
-        if (uniqueReference) throw new ConflictException('La referencia que ingreso ya esta registrada, genere una nueva referencia para realizar la solicitud.');
+        if (uniqueReference) throw new ConflictException('La referencia que ingreso ya esta registrada, genere una nueva referencia y páguela para realizar la solicitud.');
 
         if (Object.keys(files).length !== 2) throw new UnprocessableException('Los archivos necesarios para la solicitud no fueron cargados, porfavor verifique.');
 
