@@ -65,7 +65,7 @@ const AdministradorModel = db.define('administrador', {
         allowNull: false,
         defaultValue: 2,
         validate: {
-            isIn: [[2, 3]]
+            isIn: [[1, 2]]
         }
     }
 }, {

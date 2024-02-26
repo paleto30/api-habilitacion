@@ -21,7 +21,7 @@ export const schemaValidateQueryParamsFilters = Joi.object(
                 'number.base': 'El telefono debe ser un numero.'
             }
         ),
-        email: Joi.string().trim(),
+        email: Joi.string().trim().email(),
         page: Joi.number().integer(),
         amount: Joi.number().integer()
     }
@@ -42,5 +42,26 @@ export const schemaValidateRecoveryTable = Joi.object(
         student: Joi.string().regex(/^[a-zA-Z\s]*$/).message('El texto que ingreso no es un nombre.'),
         page: Joi.number().integer(),
         amount: Joi.number().integer()
+    }
+)
+
+
+
+
+export const schemaValidateRecoveryDetails = Joi.object({
+    id_recovery: Joi.number().integer().required().messages(
+        {
+            'number.base': 'id_recovery debe ser un numero entero.',
+            'number.integer': 'id_recovery debe ser un numero entero.',
+            'any.required': 'id_recovery es requerido.',
+        }
+    ),
+})
+
+
+
+export const schemaValidareNameFile = Joi.object(
+    {
+        name: Joi.string().trim().required()
     }
 )
